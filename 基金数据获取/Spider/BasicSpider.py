@@ -10,6 +10,7 @@ from retry import retry
 from functools import wraps
 from jsonpath import jsonpath
 from collections import namedtuple
+from collections import defaultdict
 from typing import Dict, List, Union,Callable
 
 
@@ -294,8 +295,7 @@ class BasicSpider:
 
     @retry(tries=3)
     @to_numeric
-    def get_quote_history(fund_code: str,
-                        pz: int = 40000) -> pd.DataFrame:
+    def get_quote_history(self,fund_code: str,pz: int = 40000) -> pd.DataFrame:
         """
         根据基金代码和要获取的页码抓取基金净值信息
         Parameters
@@ -310,8 +310,8 @@ class BasicSpider:
             包含基金历史净值等数据
         Examples
         --------
-        >>> import efinance as ef
-        >>> ef.fund.get_quote_history('161725')
+
+        >>> self.get_quote_history('161725')
             日期    单位净值    累计净值     涨跌幅
         0    2021-06-11  1.5188  3.1499   -3.09
         1    2021-06-10  1.5673  3.1984    1.69
@@ -370,7 +370,7 @@ class BasicSpider:
 
     @retry(tries=3)
     @to_numeric
-    def get_realtime_increase_rate(fund_codes: Union[List[str], str]) -> pd.DataFrame:
+    def get_realtime_increase_rate(self,fund_codes: Union[List[str], str]) -> pd.DataFrame:
         """
         获取基金实时估算涨跌幅度
         Parameters
@@ -383,13 +383,13 @@ class BasicSpider:
             单只或者多只基金实时估算涨跌情况
         Examples
         --------
-        >>> import efinance as ef
+
         >>> # 单只基金
-        >>> ef.fund.get_realtime_increase_rate('161725')
+        >>> self.get_realtime_increase_rate('161725')
             基金代码              名称  估算涨跌幅              估算时间
         0  161725  招商中证白酒指数(LOF)A  -0.64  2021-06-15 11:13
         >>> # 多只基金
-        >>> ef.fund.get_realtime_increase_rate(['161725','005827'])
+        >>> self.get_realtime_increase_rate(['161725','005827'])
             基金代码              名称  估算涨跌幅              估算时间
         0  161725  招商中证白酒指数(LOF)A  -0.60  2021-06-15 11:16
         1  005827       易方达蓝筹精选混合  -1.36  2021-06-15 11:16
@@ -419,7 +419,7 @@ class BasicSpider:
         url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo'
         json_response = requests.get(
             url,
-            headers=EastmoneyFundHeaders,
+            headers=self.EastmoneyFundHeaders,
             data=data).json()
         rows = jsonpath(json_response, '$..Datas[:]')
         if not rows:
@@ -490,9 +490,10 @@ class BasicSpider:
             url,
             headers=headers,
             params=params)
-        results = re.findall('(\d{6}),(.*?),', response.text)
+        # results = re.findall('(\d{6}),(.*?),', response.text)
         columns = ['基金代码', '基金简称']
-        results = re.findall('(\d{6}),(.*?),', response.text)
+        # results = re.findall('(\d{6}),(.*?),', response.text)
+        results = re.findall('"(\d{6}),(.*?),', response.text)
         df = pd.DataFrame(results, columns=columns)
 
         # text = text[text.index('["') + 2:text.index('"]')]
@@ -1250,41 +1251,211 @@ class BasicSpider:
             '代码数据类型输入不正确！'
         )
 
+    def get_all_fundings_info(self) -> pd.DataFrame:
+        raw_data = self.get_fund_codes()
+        data = defaultdict(list)
+        for index, row in raw_data.iterrows():
+            if index > 30:break
+            try:
+                inverst_position_raw = self.get_inverst_position(row['基金代码'])
+                period_change_raw = self.get_period_change(row['基金代码'])
+                base_info_single_raw = self.get_base_info_single(row['基金代码'])
+                realtime_increase_rate_raw = self.get_realtime_increase_rate(row['基金代码'])
+            except:
+                print(row['基金代码'],row['基金简称'])
+                continue
+            data['基金代码'].append(row['基金代码'])
+            data['基金简称'].append(row['基金简称'])
+
+            data['基金估算涨跌幅'].append(realtime_increase_rate_raw['估算涨跌幅'])
+            data['基金估算涨跌幅时间'].append(realtime_increase_rate_raw['估算时间'])
+
+            # ********************第一大重仓股的信息*********************
+            data['第一大重仓股简称'].append(inverst_position_raw['股票简称'][0])
+            data['第一大重仓股代码'].append(inverst_position_raw['股票代码'][0])
+            data['第一大重仓股占比'].append(inverst_position_raw['持仓占比'][0])
+
+            base_info_stock_raw_1st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][0])
+            data['第一大重仓股动态市盈率'].append(base_info_stock_raw_1st['市盈率(动)'])
+            data['第一大重仓股市净率'].append(base_info_stock_raw_1st['市净率'])
+            data['第一大重仓股所处行业'].append(base_info_stock_raw_1st['所处行业'])
+            data['第一大重仓股总市值'].append(base_info_stock_raw_1st['总市值'])
+            data['第一大重仓股流通市值'].append(base_info_stock_raw_1st['流通市值'])
+            data['第一大重仓股ROE'].append(base_info_stock_raw_1st['ROE'])
+            data['第一大重仓股净利润'].append(base_info_stock_raw_1st['净利率'])
+            data['第一大重仓股净利率'].append(base_info_stock_raw_1st['净利润'])
+            data['第一大重仓股毛利率'].append(base_info_stock_raw_1st['毛利率'])
+
+            # ********************第二大重仓股的信息*********************
+            data['第二大重仓股简称'].append(inverst_position_raw['股票简称'][1])
+            data['第二大重仓股代码'].append(inverst_position_raw['股票代码'][1])
+            data['第二大重仓股占比'].append(inverst_position_raw['持仓占比'][1])
+
+            base_info_stock_raw_2st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][1])
+            data['第二大重仓股动态市盈率'].append(base_info_stock_raw_2st['市盈率(动)'])
+            data['第二大重仓股市净率'].append(base_info_stock_raw_2st['市净率'])
+            data['第二大重仓股所处行业'].append(base_info_stock_raw_2st['所处行业'])
+            data['第二大重仓股总市值'].append(base_info_stock_raw_2st['总市值'])
+            data['第二大重仓股流通市值'].append(base_info_stock_raw_2st['流通市值'])
+            data['第二大重仓股ROE'].append(base_info_stock_raw_2st['ROE'])
+            data['第二大重仓股净利润'].append(base_info_stock_raw_2st['净利率'])
+            data['第二大重仓股净利率'].append(base_info_stock_raw_2st['净利润'])
+            data['第二大重仓股毛利率'].append(base_info_stock_raw_2st['毛利率'])
+
+
+            # ********************第三大重仓股的信息*********************
+            data['第三大重仓股简称'].append(inverst_position_raw['股票简称'][2])
+            data['第三大重仓股代码'].append(inverst_position_raw['股票代码'][2])
+            data['第三大重仓股占比'].append(inverst_position_raw['持仓占比'][2])
+
+            base_info_stock_raw_3st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][2])
+            data['第三大重仓股动态市盈率'].append(base_info_stock_raw_3st['市盈率(动)'])
+            data['第三大重仓股市净率'].append(base_info_stock_raw_3st['市净率'])
+            data['第三大重仓股所处行业'].append(base_info_stock_raw_3st['所处行业'])
+            data['第三大重仓股总市值'].append(base_info_stock_raw_3st['总市值'])
+            data['第三大重仓股流通市值'].append(base_info_stock_raw_3st['流通市值'])
+            data['第三大重仓股ROE'].append(base_info_stock_raw_3st['ROE'])
+            data['第三大重仓股净利润'].append(base_info_stock_raw_3st['净利率'])
+            data['第三大重仓股净利率'].append(base_info_stock_raw_3st['净利润'])
+            data['第三大重仓股毛利率'].append(base_info_stock_raw_3st['毛利率'])
+
+
+            # ********************第四大重仓股的信息*********************
+            data['第四大重仓股简称'].append(inverst_position_raw['股票简称'][3])
+            data['第四大重仓股代码'].append(inverst_position_raw['股票代码'][3])
+            data['第四大重仓股占比'].append(inverst_position_raw['持仓占比'][3])
+            
+
+            base_info_stock_raw_4st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][3])
+            data['第四大重仓股动态市盈率'].append(base_info_stock_raw_4st['市盈率(动)'])
+            data['第四大重仓股市净率'].append(base_info_stock_raw_4st['市净率'])
+            data['第四大重仓股所处行业'].append(base_info_stock_raw_4st['所处行业'])
+            data['第四大重仓股总市值'].append(base_info_stock_raw_4st['总市值'])
+            data['第四大重仓股流通市值'].append(base_info_stock_raw_4st['流通市值'])
+            data['第四大重仓股ROE'].append(base_info_stock_raw_4st['ROE'])
+            data['第四大重仓股净利润'].append(base_info_stock_raw_4st['净利率'])
+            data['第四大重仓股净利率'].append(base_info_stock_raw_4st['净利润'])
+            data['第四大重仓股毛利率'].append(base_info_stock_raw_4st['毛利率'])
+
+            # ********************第五大重仓股的信息*********************
+            data['第五大重仓股简称'].append(inverst_position_raw['股票简称'][4])
+            data['第五大重仓股代码'].append(inverst_position_raw['股票代码'][4])
+            data['第五大重仓股占比'].append(inverst_position_raw['持仓占比'][4])
+
+            base_info_stock_raw_5st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][4])
+            data['第五大重仓股动态市盈率'].append(base_info_stock_raw_5st['市盈率(动)'])
+            data['第五大重仓股市净率'].append(base_info_stock_raw_5st['市净率'])
+            data['第五大重仓股所处行业'].append(base_info_stock_raw_5st['所处行业'])
+            data['第五大重仓股总市值'].append(base_info_stock_raw_5st['总市值'])
+            data['第五大重仓股流通市值'].append(base_info_stock_raw_5st['流通市值'])
+            data['第五大重仓股ROE'].append(base_info_stock_raw_5st['ROE'])
+            data['第五大重仓股净利润'].append(base_info_stock_raw_5st['净利率'])
+            data['第五大重仓股净利率'].append(base_info_stock_raw_5st['净利润'])
+            data['第五大重仓股毛利率'].append(base_info_stock_raw_5st['毛利率'])
+
+            # ********************第六大重仓股的信息*********************
+            data['第六大重仓股简称'].append(inverst_position_raw['股票简称'][5])
+            data['第六大重仓股代码'].append(inverst_position_raw['股票代码'][5])
+            data['第六大重仓股占比'].append(inverst_position_raw['持仓占比'][5])
+
+            base_info_stock_raw_6st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][5])
+            data['第六大重仓股动态市盈率'].append(base_info_stock_raw_6st['市盈率(动)'])
+            data['第六大重仓股市净率'].append(base_info_stock_raw_6st['市净率'])
+            data['第六大重仓股所处行业'].append(base_info_stock_raw_6st['所处行业'])
+            data['第六大重仓股总市值'].append(base_info_stock_raw_6st['总市值'])
+            data['第六大重仓股流通市值'].append(base_info_stock_raw_6st['流通市值'])
+            data['第六大重仓股ROE'].append(base_info_stock_raw_6st['ROE'])
+            data['第六大重仓股净利润'].append(base_info_stock_raw_6st['净利率'])
+            data['第六大重仓股净利率'].append(base_info_stock_raw_6st['净利润'])
+            data['第六大重仓股毛利率'].append(base_info_stock_raw_6st['毛利率'])
+
+            
+            # ********************第七大重仓股的信息*********************
+            data['第七大重仓股简称'].append(inverst_position_raw['股票简称'][6])
+            data['第七大重仓股代码'].append(inverst_position_raw['股票代码'][6])
+            data['第七大重仓股占比'].append(inverst_position_raw['持仓占比'][6])
+
+            base_info_stock_raw_7st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][6])
+            data['第七大重仓股动态市盈率'].append(base_info_stock_raw_7st['市盈率(动)'])
+            data['第七大重仓股市净率'].append(base_info_stock_raw_7st['市净率'])
+            data['第七大重仓股所处行业'].append(base_info_stock_raw_7st['所处行业'])
+            data['第七大重仓股总市值'].append(base_info_stock_raw_7st['总市值'])
+            data['第七大重仓股流通市值'].append(base_info_stock_raw_7st['流通市值'])
+            data['第七大重仓股ROE'].append(base_info_stock_raw_7st['ROE'])
+            data['第七大重仓股净利润'].append(base_info_stock_raw_7st['净利率'])
+            data['第七大重仓股净利率'].append(base_info_stock_raw_7st['净利润'])
+            data['第七大重仓股毛利率'].append(base_info_stock_raw_7st['毛利率'])
+
+            
+            # ********************第八大重仓股的信息*********************
+            data['第八大重仓股简称'].append(inverst_position_raw['股票简称'][7])
+            data['第八大重仓股代码'].append(inverst_position_raw['股票代码'][7])
+            data['第八大重仓股占比'].append(inverst_position_raw['持仓占比'][7])
+
+            base_info_stock_raw_8st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][7])
+            data['第八大重仓股动态市盈率'].append(base_info_stock_raw_8st['市盈率(动)'])
+            data['第八大重仓股市净率'].append(base_info_stock_raw_8st['市净率'])
+            data['第八大重仓股所处行业'].append(base_info_stock_raw_8st['所处行业'])
+            data['第八大重仓股总市值'].append(base_info_stock_raw_8st['总市值'])
+            data['第八大重仓股流通市值'].append(base_info_stock_raw_8st['流通市值'])
+            data['第八大重仓股ROE'].append(base_info_stock_raw_8st['ROE'])
+            data['第八大重仓股净利润'].append(base_info_stock_raw_8st['净利率'])
+            data['第八大重仓股净利率'].append(base_info_stock_raw_8st['净利润'])
+            data['第八大重仓股毛利率'].append(base_info_stock_raw_8st['毛利率'])
+
+            
+            # ********************第九大重仓股的信息*********************
+            data['第九大重仓股简称'].append(inverst_position_raw['股票简称'][8])
+            data['第九大重仓股代码'].append(inverst_position_raw['股票代码'][8])
+            data['第九大重仓股占比'].append(inverst_position_raw['持仓占比'][8])
+
+            base_info_stock_raw_9st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][8])
+            data['第九大重仓股动态市盈率'].append(base_info_stock_raw_9st['市盈率(动)'])
+            data['第九大重仓股市净率'].append(base_info_stock_raw_9st['市净率'])
+            data['第九大重仓股所处行业'].append(base_info_stock_raw_9st['所处行业'])
+            data['第九大重仓股总市值'].append(base_info_stock_raw_9st['总市值'])
+            data['第九大重仓股流通市值'].append(base_info_stock_raw_9st['流通市值'])
+            data['第九大重仓股ROE'].append(base_info_stock_raw_9st['ROE'])
+            data['第九大重仓股净利润'].append(base_info_stock_raw_9st['净利率'])
+            data['第九大重仓股净利率'].append(base_info_stock_raw_9st['净利润'])
+            data['第九大重仓股毛利率'].append(base_info_stock_raw_9st['毛利率'])
+
+            data['第十大重仓股简称'].append(inverst_position_raw['股票简称'][9])
+            data['第十大重仓股代码'].append(inverst_position_raw['股票代码'][9])
+            data['第十大重仓股占比'].append(inverst_position_raw['持仓占比'][9])
+
+            base_info_stock_raw_10st = self.get_base_info_stock_single(inverst_position_raw['股票代码'][9])
+            data['第十大重仓股动态市盈率'].append(base_info_stock_raw_10st['市盈率(动)'])
+            data['第十大重仓股市净率'].append(base_info_stock_raw_10st['市净率'])
+            data['第十大重仓股所处行业'].append(base_info_stock_raw_10st['所处行业'])
+            data['第十大重仓股总市值'].append(base_info_stock_raw_10st['总市值'])
+            data['第十大重仓股流通市值'].append(base_info_stock_raw_10st['流通市值'])
+            data['第十大重仓股ROE'].append(base_info_stock_raw_10st['ROE'])
+            data['第十大重仓股净利润'].append(base_info_stock_raw_10st['净利率'])
+            data['第十大重仓股净利率'].append(base_info_stock_raw_10st['净利润'])
+            data['第十大重仓股毛利率'].append(base_info_stock_raw_10st['毛利率'])
+
+
+            data['成立日期'].append(base_info_single_raw[2])
+            data['昨日收盘涨跌幅'].append(base_info_single_raw[3])
+            data['最新净值'].append(base_info_single_raw[4])
+            data['净值更新日期'].append(base_info_single_raw[5])
+
+            data['近一周收益率'].append(period_change_raw['收益率'][0])
+            data['近一月收益率'].append(period_change_raw['收益率'][1])
+            data['近三月收益率'].append(period_change_raw['收益率'][2])
+            data['近六月收益率'].append(period_change_raw['收益率'][3])
+            data['近一年收益率'].append(period_change_raw['收益率'][4])
+            data['近两年收益率'].append(period_change_raw['收益率'][5])
+
+
+        result = pd.DataFrame(data)
+        result.to_csv('./基金基本信息.csv',index = False)
+        return result
 
 
 
 if __name__ == "__main__":
     a = BasicSpider()
     # ******************测试基金***********************
-
-    # result = a.get_fund_codes()
-    # print(result)
-
-    # result = a.get_inverst_position('005669')
-    # print(result)
-
-    # result = a.get_period_change('005669')
-    # print(result)
-
-    # result = a.get_base_info_single('005669')
-    # print(result)
-    # result = a.get_base_info_single('006736')
-    # print(result)
-    # result = a.get_base_info(['005669','006736'])
-    # print(result)
-
-
-    # public_dates = a.get_public_dates('005669')
-    # # 取前两个公开持仓日期
-    # dates = public_dates[:2]
-    # print(dates)
-
-    # # ***************测试股票************************
-    # result = a.get_base_info_stock(['600519','300035'])
-    # print(result)
-
-    # result = a.get_realtime_quotes()
-    # print(result)
-
-    result = a.get_quote_history('005669')
-    print(result)
+    a.get_all_fundings_info()

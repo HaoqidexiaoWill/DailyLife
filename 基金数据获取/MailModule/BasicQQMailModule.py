@@ -12,7 +12,6 @@ from Config.CommonConfig import SOURCE_EMAIL,TARGET_EMAIL_LIST,EMAIL_PASSWORD
 class BasicQQMailModule:
     def __init__(self) -> None:
         pass
-    #写成了一个通用的函数接口，想直接用的话，把参数的注释去掉就好
     def sent_email_single(self,source_email = SOURCE_EMAIL,passwd = EMAIL_PASSWORD,target_email = SOURCE_EMAIL,
                                subject = "今日基金信息" ,text_content= '自动邮件，测试群发今日基金信息',file_path='../基金基本信息.csv')-> None:
         '''
@@ -38,7 +37,7 @@ class BasicQQMailModule:
         msg['To']       = target_email        
         s.sendmail(source_email, target_email, msg.as_string())
         print(f"发送给{target_email}成功")
-    def sent_email_single(self,source_email = SOURCE_EMAIL,passwd = EMAIL_PASSWORD,target_email_list = TARGET_EMAIL_LIST,text_content= '',file_path='../基金基本信息.csv'):
+    def sent_email_multi(self,source_email = SOURCE_EMAIL,passwd = EMAIL_PASSWORD,target_email_list = TARGET_EMAIL_LIST,text_content= '',file_path='../基金基本信息.csv'):
         for each_target in target_email_list:
             self.sent_email_single(target_email = each_target)
             # 防止被腾讯邮箱封号，随机停止几秒之后再发

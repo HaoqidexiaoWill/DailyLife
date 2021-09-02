@@ -11,7 +11,7 @@ from functools import wraps
 from jsonpath import jsonpath
 from collections import namedtuple
 from collections import defaultdict
-from typing import Dict, List, Union,Callable
+from typing import Dict, List, Union, Callable
 
 
 def to_numeric(func):
@@ -34,12 +34,10 @@ def to_numeric(func):
         if isinstance(values, pd.DataFrame):
             for column in values.columns:
                 if column not in ignore:
-
                     values[column] = values[column].apply(convert)
         elif isinstance(values, pd.Series):
             for index in values.index:
                 if index not in ignore:
-
                     values[index] = convert(values[index])
         return values
 
@@ -54,10 +52,12 @@ def to_numeric(func):
         except:
             pass
         return o
+
     return run
 
 
-def process_dataframe_and_series(function_fields: Dict[str, Callable] = dict(),remove_columns_and_indexes: List[str] = list()):
+def process_dataframe_and_series(function_fields: Dict[str, Callable] = dict(),
+                                 remove_columns_and_indexes: List[str] = list()):
     """
     对 DataFrame 和 Series 进一步操作
     Parameters
@@ -67,6 +67,7 @@ def process_dataframe_and_series(function_fields: Dict[str, Callable] = dict(),r
     remove_columns_and_indexes : List[str], optional
         需要删除的行或者列, by default list()
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -83,9 +84,10 @@ def process_dataframe_and_series(function_fields: Dict[str, Callable] = dict(),r
                 for index in remove_columns_and_indexes:
                     values = values.drop(index)
             return values
-        return wrapper
-    return decorator
 
+        return wrapper
+
+    return decorator
 
 
 class BasicSpider:
@@ -95,9 +97,9 @@ class BasicSpider:
         # 存储证券代码的实体
         self.Quote = namedtuple(
             'Quote', [
-                'code', 'name', 'pinyin', 'id', 'jys', 'classify', 'market_type','security_typeName', 
+                'code', 'name', 'pinyin', 'id', 'jys', 'classify', 'market_type', 'security_typeName',
                 'security_type', 'mkt_num', 'type_us', 'quote_id', 'unified_code', 'inner_code'
-                ])
+            ])
 
         # 请求头
         self.EASTMONEY_REQUEST_HEADERS = {
@@ -107,7 +109,6 @@ class BasicSpider:
             'Referer': 'http://quote.eastmoney.com/center/gridlist.html',
         }
 
-
         self.EastmoneyFundHeaders = {
             'User-Agent': 'EMProjJijin/6.2.8 (iPhone; iOS 13.6; Scale/2.00)',
             'GTOKEN': '98B423068C1F4DEF9842F82ADF08C5db',
@@ -115,7 +116,7 @@ class BasicSpider:
             'Content-Type': 'application/x-www-form-urlencoded',
             'Host': 'fundmobapi.eastmoney.com',
             'Referer': 'https://mpservice.com/516939c37bdb4ba2b1138c50cf69a2e1/release/pages/FundHistoryNetWorth',
-            }
+        }
         # 股票、ETF、债券 K 线表头
         self.EASTMONEY_KLINE_FIELDS = {
             'f51': '日期',
@@ -168,13 +169,11 @@ class BasicSpider:
             'f13': '市场编号'
         }
 
-
         self.FS_DICT = {
             'bond': 'b:MK0354',
             'stock': 'm:0 t:6,m:0 t:80,m:1 t:2,m:1 t:23',
             'futures': 'm:113,m:114,m:115,m:8,m:142'
-            }
-
+        }
 
         # 各个市场编号
         self.MARKET_NUMBER_DICT = {
@@ -185,15 +184,14 @@ class BasicSpider:
             '113': '上期所',
             '114': '大商所',
             '115': '郑商所',
-            '8':   '中金所',
+            '8': '中金所',
             '142': '上海能源期货交易所',
             '155': '英股'
 
         }
 
-
     @retry(tries=3, delay=1)
-    def get_quote_id(self,stock_code: str) -> str:
+    def get_quote_id(self, stock_code: str) -> str:
         """
         生成东方财富股票专用的行情ID
         Parameters
@@ -216,7 +214,7 @@ class BasicSpider:
 
     ## TODO 返回值需要控制一下
     # def search_quote(self,keyword: str,count: int = 1) -> Union[self.Quote, None, List[self.Quote]]:
-    def search_quote(self,keyword: str,count: int = 1):
+    def search_quote(self, keyword: str, count: int = 1):
         """
         根据关键词搜索以获取证券信息
         Parameters
@@ -248,10 +246,9 @@ class BasicSpider:
             return quotes
         return None
 
-
-
     @to_numeric
-    def get_quote_history_single(self,code: str,beg: str = '19000101',end: str = '20500101',klt: int = 101,fqt: int = 1) -> pd.DataFrame:
+    def get_quote_history_single(self, code: str, beg: str = '19000101', end: str = '20500101', klt: int = 101,
+                                 fqt: int = 1) -> pd.DataFrame:
         """
         获取单只股票、债券 K 线数据
 
@@ -290,12 +287,9 @@ class BasicSpider:
 
         return df
 
-
-
-
     @retry(tries=3)
     @to_numeric
-    def get_quote_history(self,fund_code: str,pz: int = 40000) -> pd.DataFrame:
+    def get_quote_history(self, fund_code: str, pz: int = 40000) -> pd.DataFrame:
         """
         根据基金代码和要获取的页码抓取基金净值信息
         Parameters
@@ -367,10 +361,9 @@ class BasicSpider:
         df = pd.DataFrame(rows)
         return df
 
-
     @retry(tries=3)
     @to_numeric
-    def get_realtime_increase_rate(self,fund_codes: Union[List[str], str]) -> pd.DataFrame:
+    def get_realtime_increase_rate(self, fund_codes: Union[List[str], str]) -> pd.DataFrame:
         """
         获取基金实时估算涨跌幅度
         Parameters
@@ -429,7 +422,7 @@ class BasicSpider:
         return df
 
     @retry(tries=3)
-    def get_fund_codes(self,ft: str = None) -> pd.DataFrame:
+    def get_fund_codes(self, ft: str = None) -> pd.DataFrame:
         """
         获取天天基金网公开的全部公墓基金名单
         Parameters
@@ -505,10 +498,9 @@ class BasicSpider:
         #     datas['基金简称'].append(data[1])
         return df
 
-
     @retry(tries=3)
     @to_numeric
-    def get_inverst_position(self,fund_code: str,dates: Union[str, List[str]] = None) -> pd.DataFrame:
+    def get_inverst_position(self, fund_code: str, dates: Union[str, List[str]] = None) -> pd.DataFrame:
         """
         获取基金持仓占比数据
         Parameters
@@ -593,7 +585,7 @@ class BasicSpider:
                 params.append(('DATE', date))
             url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNInverstPosition'
             json_response = requests.get(url,
-                                        headers=self.EastmoneyFundHeaders, params=params).json()
+                                         headers=self.EastmoneyFundHeaders, params=params).json()
             stocks = jsonpath(json_response, '$..fundStocks[:]')
             if not stocks:
                 continue
@@ -606,10 +598,9 @@ class BasicSpider:
         df.insert(0, '基金代码', fund_code)
         return df
 
-
     @retry(tries=3)
     @to_numeric
-    def get_period_change(self,fund_code: str) -> pd.DataFrame:
+    def get_period_change(self, fund_code: str) -> pd.DataFrame:
         """
         获取基金阶段涨跌幅度
         Parameters
@@ -663,15 +654,15 @@ class BasicSpider:
 
         }
         titles = {'Z': '近一周',
-                'Y': '近一月',
-                '3Y': '近三月',
-                '6Y': '近六月',
-                '1N': '近一年',
-                '2Y': '近两年',
-                '3N': '近三年',
-                '5N': '近五年',
-                'JN': '今年以来',
-                'LN': '成立以来'}
+                  'Y': '近一月',
+                  '3Y': '近三月',
+                  '6Y': '近六月',
+                  '1N': '近一年',
+                  '2Y': '近两年',
+                  '3N': '近三年',
+                  '5N': '近五年',
+                  'JN': '今年以来',
+                  'LN': '成立以来'}
         # 发行时间
         ESTABDATE = json_response['Expansion']['ESTABDATE']
         df = pd.DataFrame(json_response['Datas'])
@@ -681,7 +672,7 @@ class BasicSpider:
         df.insert(0, '基金代码', fund_code)
         return df
 
-    def get_public_dates(self,fund_code: str) -> List[str]:
+    def get_public_dates(self, fund_code: str) -> List[str]:
         """
         获取历史上更新持仓情况的日期列表
         Parameters
@@ -720,12 +711,12 @@ class BasicSpider:
             return []
         return json_response['Datas']
 
-
     ## TODO 浩哥有时间处理一下这个url 被反爬了似乎
     url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNAssetAllocationNew'
+
     @retry(tries=3)
     @to_numeric
-    def get_types_persentage(self,fund_code: str,dates: Union[List[str], str, None] = None) -> pd.DataFrame:
+    def get_types_persentage(self, fund_code: str, dates: Union[List[str], str, None] = None) -> pd.DataFrame:
         """
         获取指定基金不同类型占比信息
         Parameters
@@ -781,7 +772,7 @@ class BasicSpider:
                 params.append(('DATE', date))
             params = tuple(params)
             url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNAssetAllocationNew'
-            json_response = requests.get(url,  params=params).json()
+            json_response = requests.get(url, params=params).json()
             print(json_response)
             if len(json_response['Datas']) == 0:
                 continue
@@ -791,11 +782,9 @@ class BasicSpider:
         df.insert(0, '基金代码', fund_code)
         return df
 
-
-
     @retry(tries=3)
     @to_numeric
-    def get_base_info_single(self,fund_code: str) -> pd.Series:
+    def get_base_info_single(self, fund_code: str) -> pd.Series:
         """
         获取基金的一些基本信息
         Parameters
@@ -839,11 +828,10 @@ class BasicSpider:
             index=columns)[columns.values()]
 
         s = s.apply(lambda x: x.replace('\n', ' ').strip()
-                    if isinstance(x, str) else x)
+        if isinstance(x, str) else x)
         return s
 
-
-    def get_base_info_muliti(self,fund_codes: List[str]) -> pd.Series:
+    def get_base_info_muliti(self, fund_codes: List[str]) -> pd.Series:
         """
         获取多只基金基本信息
         Parameters
@@ -865,6 +853,7 @@ class BasicSpider:
             ss.append(s)
             pbar.update()
             pbar.set_description(f'Processing => {fund_code}')
+
         pbar = tqdm(total=len(fund_codes))
         for fund_code in fund_codes:
             start(fund_code)
@@ -872,8 +861,7 @@ class BasicSpider:
         df = pd.DataFrame(ss)
         return df
 
-
-    def get_base_info(self,fund_codes: Union[str, List[str]]) -> Union[pd.Series, pd.DataFrame]:
+    def get_base_info(self, fund_codes: Union[str, List[str]]) -> Union[pd.Series, pd.DataFrame]:
         """
         获取基金的一些基本信息
         Parameters
@@ -916,14 +904,12 @@ class BasicSpider:
             return self.get_base_info_muliti(fund_codes)
         raise TypeError(f'所给的 {fund_codes} 不符合参数要求')
 
-
-# *******************************************************************
-# 股票信息
-# *******************************************************************
-
+    # *******************************************************************
+    # 股票信息
+    # *******************************************************************
 
     @to_numeric
-    def get_base_info_stock_single(self,stock_code: str) -> pd.Series:
+    def get_base_info_stock_single(self, stock_code: str) -> pd.Series:
         """
         获取单股票基本信息
         Parameters
@@ -946,15 +932,14 @@ class BasicSpider:
         )
         url = 'http://push2.eastmoney.com/api/qt/stock/get'
         json_response = self.session.get(url,
-                                    headers=self.EASTMONEY_REQUEST_HEADERS,
-                                    params=params).json()
+                                         headers=self.EASTMONEY_REQUEST_HEADERS,
+                                         params=params).json()
 
         s = pd.Series(json_response['data']).rename(
             index=self.EASTMONEY_STOCK_BASE_INFO_FIELDS)
         return s[self.EASTMONEY_STOCK_BASE_INFO_FIELDS.values()]
 
-
-    def get_base_info_stock_muliti(self,stock_codes: List[str]) -> pd.DataFrame:
+    def get_base_info_stock_muliti(self, stock_codes: List[str]) -> pd.DataFrame:
         """
         获取股票多只基本信息
         Parameters
@@ -974,6 +959,7 @@ class BasicSpider:
             dfs.append(s)
             pbar.update()
             pbar.set_description(f'Processing => {stock_code}')
+
         dfs: List[pd.DataFrame] = []
         pbar = tqdm(total=len(stock_codes))
         for stock_code in stock_codes:
@@ -982,9 +968,8 @@ class BasicSpider:
         df = pd.DataFrame(dfs)
         return df
 
-
     @to_numeric
-    def get_base_info_stock(self,stock_codes: Union[str, List[str]]) -> Union[pd.Series, pd.DataFrame]:
+    def get_base_info_stock(self, stock_codes: Union[str, List[str]]) -> Union[pd.Series, pd.DataFrame]:
         """
         Parameters
         ----------
@@ -1031,11 +1016,8 @@ class BasicSpider:
 
         raise TypeError(f'所给的 {stock_codes} 不符合参数要求')
 
-
-
-
     @to_numeric
-    def get_realtime_quotes_by_fs(self,fs: str) -> pd.DataFrame:
+    def get_realtime_quotes_by_fs(self, fs: str) -> pd.DataFrame:
         """
         获取沪深市场最新行情总体情况
         Returns
@@ -1057,17 +1039,14 @@ class BasicSpider:
             ('fields', fields)
         )
         url = 'http://push2.eastmoney.com/api/qt/clist/get'
-        json_response = self.session.get(url,headers=self.EASTMONEY_REQUEST_HEADERS,params=params).json()
+        json_response = self.session.get(url, headers=self.EASTMONEY_REQUEST_HEADERS, params=params).json()
         df = pd.DataFrame(json_response['data']['diff'])
         df = df.rename(columns=self.EASTMONEY_QUOTE_FIELDS)
         df = df[self.EASTMONEY_QUOTE_FIELDS.values()]
-        df['行情ID'] = df['市场编号'].astype(str)+'.'+df['代码'].astype('str')
+        df['行情ID'] = df['市场编号'].astype(str) + '.' + df['代码'].astype('str')
         df['市场类型'] = df['市场编号'].astype(str).apply(lambda x: self.MARKET_NUMBER_DICT.get(x))
 
         return df
-
-
-
 
     @process_dataframe_and_series(remove_columns_and_indexes=['市场编号'])
     @to_numeric
@@ -1103,16 +1082,13 @@ class BasicSpider:
 
         return df
 
-
-
-
     @to_numeric
-    def get_quote_history_single(self,code: str,
-                                beg: str = '19000101',
-                                end: str = '20500101',
-                                klt: int = 101,
-                                fqt: int = 1,
-                                **kwargs) -> pd.DataFrame:
+    def get_quote_history_single(self, code: str,
+                                 beg: str = '19000101',
+                                 end: str = '20500101',
+                                 klt: int = 101,
+                                 fqt: int = 1,
+                                 **kwargs) -> pd.DataFrame:
         """
         获取单只股票、债券 K 线数据
         """
@@ -1154,8 +1130,7 @@ class BasicSpider:
 
         return df
 
-
-    def get_quote_history_multi(self,codes: List[str],
+    def get_quote_history_multi(self, codes: List[str],
                                 beg: str = '19000101',
                                 end: str = '20500101',
                                 klt: int = 101,
@@ -1191,13 +1166,12 @@ class BasicSpider:
         pbar.close()
         return dfs
 
-
-    def get_quote_history(self,codes: Union[str, List[str]],
-                        beg: str = '19000101',
-                        end: str = '20500101',
-                        klt: int = 101,
-                        fqt: int = 1,
-                        **kwargs) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+    def get_quote_history(self, codes: Union[str, List[str]],
+                          beg: str = '19000101',
+                          end: str = '20500101',
+                          klt: int = 101,
+                          fqt: int = 1,
+                          **kwargs) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         """
         获取股票、ETF、债券的 K 线数据
         Parameters
@@ -1233,20 +1207,20 @@ class BasicSpider:
 
         if isinstance(codes, str):
             return self.get_quote_history_single(codes,
-                                            beg=beg,
-                                            end=end,
-                                            klt=klt,
-                                            fqt=fqt,
-                                            **kwargs)
+                                                 beg=beg,
+                                                 end=end,
+                                                 klt=klt,
+                                                 fqt=fqt,
+                                                 **kwargs)
 
         elif hasattr(codes, '__iter__'):
             codes = list(codes)
             return self.get_quote_history_multi(codes,
-                                        beg=beg,
-                                        end=end,
-                                        klt=klt,
-                                        fqt=fqt,
-                                        **kwargs)
+                                                beg=beg,
+                                                end=end,
+                                                klt=klt,
+                                                fqt=fqt,
+                                                **kwargs)
         raise TypeError(
             '代码数据类型输入不正确！'
         )
@@ -1255,14 +1229,14 @@ class BasicSpider:
         raw_data = self.get_fund_codes()
         data = defaultdict(list)
         for index, row in raw_data.iterrows():
-            if index > 30:break
+            if index > 30: break
             try:
                 inverst_position_raw = self.get_inverst_position(row['基金代码'])
                 period_change_raw = self.get_period_change(row['基金代码'])
                 base_info_single_raw = self.get_base_info_single(row['基金代码'])
                 realtime_increase_rate_raw = self.get_realtime_increase_rate(row['基金代码'])
             except:
-                print(row['基金代码'],row['基金简称'])
+                print(row['基金代码'], row['基金简称'])
                 continue
             data['基金代码'].append(row['基金代码'])
             data['基金简称'].append(row['基金简称'])
@@ -1272,19 +1246,19 @@ class BasicSpider:
 
             num_list = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
             for num in range(10):
-                data['第'+ num_list[num] + '一大重仓股简称'].append(inverst_position_raw['股票简称'][num])
-                data['第'+ num_list[num] + '大重仓股代码'].append(inverst_position_raw['股票代码'][num])
-                data['第'+ num_list[num] + '大重仓股占比'].append(inverst_position_raw['持仓占比'][num])
+                data['第' + num_list[num] + '一大重仓股简称'].append(inverst_position_raw['股票简称'][num])
+                data['第' + num_list[num] + '大重仓股代码'].append(inverst_position_raw['股票代码'][num])
+                data['第' + num_list[num] + '大重仓股占比'].append(inverst_position_raw['持仓占比'][num])
                 base_info_single_raw_tmp = self.get_base_info_stock_single(inverst_position_raw['股票代码'][num])
-                data['第'+ num_list[num] + '大重仓股动态市盈率'].append(base_info_single_raw_tmp['市盈率(动)'])
-                data['第'+ num_list[num] + '大重仓股市净率'].append(base_info_single_raw_tmp['市净率'])
-                data['第'+ num_list[num] + '大重仓股所处行业'].append(base_info_single_raw_tmp['所处行业'])
-                data['第'+ num_list[num] + '大重仓股总市值'].append(base_info_single_raw_tmp['总市值'])
-                data['第'+ num_list[num] + '大重仓股流通市值'].append(base_info_single_raw_tmp['流通市值'])
-                data['第'+ num_list[num] + '大重仓股ROE'].append(base_info_single_raw_tmp['ROE'])
-                data['第'+ num_list[num] + '大重仓股净利润'].append(base_info_single_raw_tmp['净利率'])
-                data['第'+ num_list[num] + '大重仓股净利率'].append(base_info_single_raw_tmp['净利润'])
-                data['第'+ num_list[num] + '大重仓股毛利率'].append(base_info_single_raw_tmp['毛利率'])
+                data['第' + num_list[num] + '大重仓股动态市盈率'].append(base_info_single_raw_tmp['市盈率(动)'])
+                data['第' + num_list[num] + '大重仓股市净率'].append(base_info_single_raw_tmp['市净率'])
+                data['第' + num_list[num] + '大重仓股所处行业'].append(base_info_single_raw_tmp['所处行业'])
+                data['第' + num_list[num] + '大重仓股总市值'].append(base_info_single_raw_tmp['总市值'])
+                data['第' + num_list[num] + '大重仓股流通市值'].append(base_info_single_raw_tmp['流通市值'])
+                data['第' + num_list[num] + '大重仓股ROE'].append(base_info_single_raw_tmp['ROE'])
+                data['第' + num_list[num] + '大重仓股净利润'].append(base_info_single_raw_tmp['净利率'])
+                data['第' + num_list[num] + '大重仓股净利率'].append(base_info_single_raw_tmp['净利润'])
+                data['第' + num_list[num] + '大重仓股毛利率'].append(base_info_single_raw_tmp['毛利率'])
             data['成立日期'].append(base_info_single_raw[2])
             data['昨日收盘涨跌幅'].append(base_info_single_raw[3])
             data['最新净值'].append(base_info_single_raw[4])
@@ -1297,9 +1271,8 @@ class BasicSpider:
             data['近两年收益率'].append(period_change_raw['收益率'][5])
 
         result = pd.DataFrame(data)
-        result.to_csv('./基金基本信息.csv',index = False)
+        result.to_csv('./基金基本信息.csv', index=False)
         return result
-
 
 
 if __name__ == "__main__":

@@ -15,5 +15,7 @@
 | 最大回撤结束时间 | 2019-01-23 |
 | 年化收益/回撤比  | 0.86       |
 
-https://yanyandexiaoruantang0828.oss-cn-beijing.aliyuncs.com/u%3D193219282%2C2418947645%26fm%3D26%26fmt%3Dauto%26gp%3D0
+
+https://yanyandexiaoruantang0828.oss-cn-beijing.aliyuncs.com/uPic/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210905034501.png
+
 

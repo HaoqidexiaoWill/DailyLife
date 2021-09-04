@@ -16,6 +16,6 @@
 | 年化收益/回撤比  | 0.86       |
 
 
-https://yanyandexiaoruantang0828.oss-cn-beijing.aliyuncs.com/uPic/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210905034501.png
+![策略结果](https://yanyandexiaoruantang0828.oss-cn-beijing.aliyuncs.com/uPic/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210905034501.png)
 
 

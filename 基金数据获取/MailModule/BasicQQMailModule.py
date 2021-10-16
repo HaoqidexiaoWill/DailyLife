@@ -30,6 +30,7 @@ class BasicQQMailModule:
         msg.attach(docApart)
         
         s = smtplib.SMTP_SSL("smtp.qq.com", 465)
+        # 登录邮箱
         s.login(source_email, passwd)
         
         msg['Subject']  = subject
@@ -48,5 +49,5 @@ class BasicQQMailModule:
 
 if __name__ == "__main__":
     a = BasicQQMailModule()
-    # ******************测试基金***********************
+    # ******************测试邮件***********************
     a.sent_email_single()

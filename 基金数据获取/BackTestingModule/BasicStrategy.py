@@ -14,10 +14,8 @@ class BasicStrategy:
 
     def load_data(self):
         # 读取数据
-        df_sh000300 = pd.read_csv(
-            'sh000300.csv', parse_dates=['candle_end_time'])
-        df_sz399006 = pd.read_csv(
-            'sz399006.csv', parse_dates=['candle_end_time'])
+        df_sh000300 = pd.read_csv('sh000300.csv', parse_dates=['candle_end_time'])
+        df_sz399006 = pd.read_csv('sz399006.csv', parse_dates=['candle_end_time'])
 
         # 计算大小盘每天的涨跌幅amplitude
         df_sh000300['沪深300当日涨幅'] = df_sh000300['close'] / df_sh000300['close'].shift(1) - 1
@@ -180,6 +178,7 @@ class BasicStrategywithEmpty(BasicStrategy):
         df.loc[(df['调仓日期'].notnull()) & (df['持仓'] == '沪深300行情'),'调仓日的涨跌幅修正'] = df['沪深300收盘价'] / (df['沪深300开盘价'] * (1 + self.trade_rate)) - 1
         df.loc[(df['调仓日期'].notnull()) & (df['持仓'] == '创业板行情') ,'调仓日的涨跌幅修正'] = df['创业板收盘价']  / (df['创业板开盘价']  * (1 + self.trade_rate)) - 1
         df.loc[df['调仓日期'].isnull(), '调仓日的涨跌幅修正'] = df['策略当日涨跌幅']
+
 
         return df
 

@@ -25,9 +25,9 @@ class BasicQQMailModule:
         msg.attach(text)
     
     
-        docApart = MIMEApplication(open(file_path, 'rb').read())
-        docApart.add_header('Content-Disposition', 'attachment', filename=file_path)
-        msg.attach(docApart)
+        # docApart = MIMEApplication(open(file_path, 'rb').read())
+        # docApart.add_header('Content-Disposition', 'attachment', filename=file_path)
+        # msg.attach(docApart)
         
         s = smtplib.SMTP_SSL("smtp.qq.com", 465)
         # 登录邮箱
